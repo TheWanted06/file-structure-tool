@@ -1,40 +1,68 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const fs = require('fs');
-const { parseDiagram } = require('./utils/parser');
-const { createFileStructure } = require('./utils/file-creator');
+const parser = require('./utils/parser');
+const fileCreator = require('./utils/file-creator');
 
+// Keep a reference to the window to prevent garbage collection
 let mainWindow;
 
-function createMainWindow() {
+function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            enableRemoteModule: false,
-            nodeIntegration: false,
+            preload: path.join(__dirname, 'preload.js'), // Secure communication bridge
         },
-        resizable: false,
-        title: 'File Structure Creator',
     });
 
+    // Load the GUI interface
     mainWindow.loadFile(path.join(__dirname, 'gui', 'index.html'));
+
+    // Optional: Open dev tools in development
+    if (!app.isPackaged) {
+        mainWindow.webContents.openDevTools();
+    }
 
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
 }
 
-// App Events
-app.whenReady().then(() => {
-    createMainWindow();
-
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+// Handle file diagram selection
+ipcMain.handle('select-diagram', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select File Diagram',
+        filters: [{ name: 'Text Files', extensions: ['txt'] }],
+        properties: ['openFile'],
     });
+
+    return result.canceled ? null : result.filePaths[0];
 });
+
+// Handle destination directory selection
+ipcMain.handle('select-destination', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select Destination Directory',
+        properties: ['openDirectory'],
+    });
+
+    return result.canceled ? null : result.filePaths[0];
+});
+
+// Process the file diagram and create the structure
+ipcMain.handle('process-diagram', async (event, diagramPath, destinationPath) => {
+    try {
+        const structure = parser.parseDiagram(diagramPath);
+        fileCreator.createStructure(structure, destinationPath);
+        return { success: true };
+    } catch (error) {
+        console.error('Error processing diagram:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Electron app lifecycle
+app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -42,31 +70,8 @@ app.on('window-all-closed', () => {
     }
 });
 
-// IPC Handlers
-ipcMain.handle('select-diagram', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openFile'],
-        filters: [{ name: 'Text Files', extensions: ['txt'] }],
-    });
-
-    return result.canceled ? null : result.filePaths[0];
-});
-
-ipcMain.handle('select-destination', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openDirectory'],
-    });
-
-    return result.canceled ? null : result.filePaths[0];
-});
-
-ipcMain.handle('process-diagram', async (_, diagramPath, destinationPath) => {
-    try {
-        const structure = parseDiagram(diagramPath);
-        createFileStructure(structure, destinationPath);
-        return { success: true };
-    } catch (error) {
-        console.error('Error processing diagram:', error);
-        return { success: false, error: error.message };
+app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
     }
 });
