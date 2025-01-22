@@ -1,88 +1,61 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const fs = require('fs');
 const path = require('path');
-const process = require('process');
+const fs = require('fs');
+const { parseDiagram } = require('./utils/parser');
+const { createFilesAndFolders } = require('./utils/file-creator');
 
 let mainWindow;
 
-app.on('ready', () => {
-  const args = process.argv.slice(2);
-
-  if (args.includes('--gui')) {
-    // Start in GUI mode
+const createWindow = () => {
     mainWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-      },
+        width: 800,
+        height: 600,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true,
+            contextIsolation: false,
+        },
     });
 
-    mainWindow.loadFile('index.html');
-  } else if (args.length === 2) {
-    // Start in CLI mode
-    const [diagramPath, destinationPath] = args;
+    mainWindow.loadFile('app/index.html');
+};
 
-    try {
-      const diagram = fs.readFileSync(diagramPath, 'utf8');
-      const structure = parseDiagram(diagram);
-      createFilesAndFolders(structure, destinationPath);
-      console.log(`File structure created successfully at ${destinationPath}`);
-      app.quit();
-    } catch (error) {
-      console.error(`Error: ${error.message}`);
-      app.quit();
-    }
-  } else {
-    console.log(
-      `Usage: \n` +
-        `  file-structure-creator --gui              Launch GUI mode\n` +
-        `  file-structure-creator <diagramPath> <destinationPath>  Run in CLI mode`
-    );
-    app.quit();
-  }
+app.whenReady().then(() => {
+    createWindow();
+
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
 });
 
-// Helper functions (same as before)
-function parseDiagram(diagram) {
-  const lines = diagram.split('\n');
-  const root = {};
-  const stack = [{ level: 0, node: root }];
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
+});
 
-  for (const line of lines) {
-    const match = line.match(/(├──|└──)?\s*([\w.\[\]()]+)/);
-    if (!match) continue;
+// IPC Handlers
+ipcMain.handle('select-diagram', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        filters: [{ name: 'Text Files', extensions: ['txt'] }],
+    });
+    return result.filePaths[0];
+});
 
-    const [_, prefix, name] = match;
-    const level = line.search(/\S/) / 4; // Each indent level is 4 spaces
-    const parent = stack.find(item => item.level === level - 1)?.node;
+ipcMain.handle('select-destination', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+    });
+    return result.filePaths[0];
+});
 
-    if (parent) {
-      if (name.endsWith('/')) {
-        const folder = {};
-        parent[name.slice(0, -1)] = folder;
-        stack.push({ level, node: folder });
-      } else {
-        parent[name] = '';
-      }
+ipcMain.handle('process-diagram', async (_, diagramPath, destinationPath) => {
+    try {
+        const diagramContent = fs.readFileSync(diagramPath, 'utf8');
+        const structure = parseDiagram(diagramContent);
+        createFilesAndFolders(structure, destinationPath);
+        return { success: true };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: error.message };
     }
-  }
-
-  return root;
-}
-
-function createFilesAndFolders(structure, parentPath) {
-  for (const key in structure) {
-    const currentPath = path.join(parentPath, key);
-
-    if (typeof structure[key] === 'object') {
-      if (!fs.existsSync(currentPath)) {
-        fs.mkdirSync(currentPath);
-      }
-      createFilesAndFolders(structure[key], currentPath);
-    } else {
-      fs.writeFileSync(currentPath, '', 'utf8');
-    }
-  }
-}
+});
