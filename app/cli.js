@@ -1,21 +1,38 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
-const path = require('path');
+const inquirer = require('inquirer');
+const fs = require('fs');
+const { parseDiagram } = require('../utils/parser');
+const { createFilesAndFolders } = require('../utils/file-creator');
 
-const electronPath = require('electron'); // Ensure Electron is installed globally or locally
-const appPath = path.resolve(__dirname);
+async function runCLI() {
+  try {
+    const { diagramPath } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'diagramPath',
+        message: 'Enter the path to the file structure diagram:',
+        validate: (input) => fs.existsSync(input) || 'File not found. Please enter a valid path.',
+      },
+    ]);
 
-const args = process.argv.slice(2); // Pass CLI arguments to the Electron app
+    const { destinationPath } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'destinationPath',
+        message: 'Enter the destination directory:',
+        validate: (input) => fs.existsSync(input) || 'Directory not found. Please enter a valid path.',
+      },
+    ]);
 
-if (args.includes('--gui')) {
-    console.log('Launching GUI...');
+    const diagramContent = fs.readFileSync(diagramPath, 'utf8');
+    const structure = parseDiagram(diagramContent);
+    createFilesAndFolders(structure, destinationPath);
+
+    console.log('File structure created successfully!');
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
 }
 
-const child = spawn(electronPath, [appPath, ...args], {
-    stdio: 'inherit',
-});
-
-child.on('exit', code => {
-    process.exit(code);
-});
+runCLI();

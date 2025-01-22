@@ -2,34 +2,44 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { parseDiagram } = require('./utils/parser');
-const { createFilesAndFolders } = require('./utils/file-creator');
+const { createFileStructure } = require('./utils/file-creator');
 
 let mainWindow;
 
-const createWindow = () => {
+function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
         height: 600,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
-            nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: true,
+            enableRemoteModule: false,
+            nodeIntegration: false,
         },
+        resizable: false,
+        title: 'File Structure Creator',
     });
 
-    mainWindow.loadFile('app/index.html');
-};
+    mainWindow.loadFile(path.join(__dirname, 'gui', 'index.html'));
 
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
+}
+
+// App Events
 app.whenReady().then(() => {
-    createWindow();
+    createMainWindow();
 
     app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
     });
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });
 
 // IPC Handlers
@@ -38,24 +48,25 @@ ipcMain.handle('select-diagram', async () => {
         properties: ['openFile'],
         filters: [{ name: 'Text Files', extensions: ['txt'] }],
     });
-    return result.filePaths[0];
+
+    return result.canceled ? null : result.filePaths[0];
 });
 
 ipcMain.handle('select-destination', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory'],
     });
-    return result.filePaths[0];
+
+    return result.canceled ? null : result.filePaths[0];
 });
 
 ipcMain.handle('process-diagram', async (_, diagramPath, destinationPath) => {
     try {
-        const diagramContent = fs.readFileSync(diagramPath, 'utf8');
-        const structure = parseDiagram(diagramContent);
-        createFilesAndFolders(structure, destinationPath);
+        const structure = parseDiagram(diagramPath);
+        createFileStructure(structure, destinationPath);
         return { success: true };
     } catch (error) {
-        console.error(error);
+        console.error('Error processing diagram:', error);
         return { success: false, error: error.message };
     }
 });
