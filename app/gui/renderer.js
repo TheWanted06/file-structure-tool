@@ -16,6 +16,11 @@ document.getElementById('createStructure').addEventListener('click', async () =>
   const diagramPath = document.getElementById('diagramPath').value;
   const destinationPath = document.getElementById('destinationPath').value;
 
+  if (!diagramPath || !destinationPath) {
+    alert('Please select both a diagram file and destination directory.');
+    return;
+  }
+
   const result = await window.electronAPI.processDiagram(diagramPath, destinationPath);
   if (result.success) {
     alert('File structure created successfully!');

@@ -1,28 +1,55 @@
-const parseDiagram = (diagram) => {
-    const lines = diagram.split('\n');
-    const root = {};
-    const stack = [{ level: 0, node: root }];
+const fs = require('fs');
 
-    for (const line of lines) {
-        const match = line.match(/(├──|└──)?\s*([\w.\[\]()/]+)/);
-        if (!match) continue;
+const parseDiagram = (filePath) => {
+    try {
+        // Read and validate file content
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`File not found: ${filePath}`);
+        }
 
-        const [_, prefix, name] = match;
-        const level = line.search(/\S/) / 4; // Each indent level is 4 spaces
-        const parent = stack.find(item => item.level === level - 1)?.node;
+        const content = fs.readFileSync(filePath, 'utf8');
+        if (!content.trim()) {
+            throw new Error('Diagram file is empty');
+        }
 
-        if (parent) {
-            if (name.endsWith('/')) {
-                const folder = {};
-                parent[name.slice(0, -1)] = folder;
-                stack.push({ level, node: folder });
-            } else {
-                parent[name] = '';
+        const lines = content.split('\n')
+            .map(line => line.trim())
+            .filter(line => line);
+
+        const root = {};
+        const stack = [{ level: -1, node: root }];
+
+        for (const line of lines) {
+            try {
+                const level = (line.match(/^\s*/)[0].length) / 2;
+                const name = line.replace(/^[│├└─\s]+/, '').trim();
+
+                if (!name) continue;
+
+                while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+                    stack.pop();
+                }
+
+                const parent = stack[stack.length - 1].node;
+
+                if (name.endsWith('/')) {
+                    const dirName = name.slice(0, -1);
+                    parent[dirName] = {};
+                    stack.push({ level, node: parent[dirName] });
+                } else {
+                    parent[name] = null;
+                }
+            } catch (lineError) {
+                console.error(`Error processing line: "${line}"`, lineError);
+                continue;
             }
         }
-    }
 
-    return root;
+        return root;
+    } catch (error) {
+        console.error('Parser error:', error);
+        throw new Error(`Failed to parse diagram: ${error.message}`);
+    }
 };
 
 module.exports = { parseDiagram };

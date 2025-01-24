@@ -1,25 +1,91 @@
 {
-  "name": "file-structure-creator",
+  "name": "file-structure-generator",
   "version": "1.0.0",
   "description": "An application that creates files and folder from a file structure diagram",
-  "main": "main.js",
-  "bin": {
-    "file-structure-creator": "./cli.js"
-  },
+  "main": "app/main.js",
   "scripts": {
     "start": "electron .",
-    "package": "electron-packager . file-structure-creator --platform=win32,linux,darwin --arch=x64 --out=dist --overwrite"
+    "cli":"node app/cli.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
+  "keywords": [
+    "file-structure",
+    "generator",
+    "electron",
+    "CLI",
+    "GUI"
+  ],
   "repository": {
     "type": "git",
-    "url": "file-structure-creator"
+    "url": "file-structure-generator"
   },
   "author": "Daniel Tshipuk",
   "license": "ISC",
   "dependencies": {
-    "electron": "^34.0.0"
+    "fs-extra": "^11.1.1"
   },
   "devDependencies": {
-    "electron-packager": "^17.1.2"
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "inquirer": "^8.2.0"
+  },
+  "build": {
+    "appId": "com.file-structure-generator.app",
+    "productName": "File Structure Generator",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "app/**/*",
+      "!app/**/*.map",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "app",
+        "to": "app",
+        "filter": ["**/*", "!**/*.js.map"]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "app/utils/**/*",
+      "app/preload.js",
+      "app/gui/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        },
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName}-${version}.${ext}",
+      "publisherName": "Daniel Tshipuk"
+    },
+    "portable": {
+      "artifactName": "FileStructureGenerator-Portable-${version}.${ext}",
+      "requestExecutionLevel": "user",
+      "useZip": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

@@ -1,49 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>File Structure Creator</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .status {
-      margin-top: 20px;
-      font-size: 18px;
-    }
-
-    .success {
-      color: green;
-    }
-
-    .error {
-      color: red;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-  <h1>File Structure Creator</h1>
+  <div class="form">
+    <h1>File Structure Creator</h1>
 
-  <button id="select-file">Select Diagram File</button>
-  <p id="file-path">No file selected</p>
+    <label>
+      <input type="text" id="diagramPath" readonly placeholder="Select diagram file...">
+      <button id="selectDiagram">Browse</button>
+    </label>
 
-  <button id="select-directory">Select Destination Directory</button>
-  <p id="directory-path">No directory selected</p>
+    <label>
+      <input type="text" id="destinationPath" readonly placeholder="Select destination...">
+      <button id="selectDestination">Browse</button>
+    </label>
 
-  <button id="create-structure">Create File Structure</button>
-
-  <p class="status" id="status"></p>
-
+    <button id="createStructure">Create Structure</button>
+  </div>
   <script src="renderer.js"></script>
 </body>
+
 </html>

@@ -1,4 +1,3 @@
-
 # Node.js dependencies
 node_modules/
 
@@ -26,3 +25,6 @@ Thumbs.db
 # Package lock files
 package-lock.json
 yarn.lock
+
+# Assets
+app/assets/
