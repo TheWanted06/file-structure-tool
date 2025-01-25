@@ -1,39 +1,59 @@
 {
-  "name": "file-structure-generator",
-  "version": "1.0.0",
-  "description": "An application that creates files and folder from a file structure diagram",
+  "name": "file-structure-tool",
+  "version": "1.1.0",
+  "private": false,
+  "description": "An application to create files and folders from a file structure diagram with both GUI and CLI interfaces",
   "main": "app/main.js",
   "scripts": {
     "start": "electron .",
-    "cli":"node app/cli.js",
+    "cli": "node app/cli.js",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "build": "electron-builder --win portable",
+    "lint": "eslint .",
+    "test": "jest"
   },
   "keywords": [
     "file-structure",
     "generator",
     "electron",
     "CLI",
-    "GUI"
+    "GUI",
+    "diagram",
+    "project-scaffold",
+    "development-tools"
   ],
   "repository": {
     "type": "git",
-    "url": "file-structure-generator"
+    "url": "https://github.com/TheWanted06/file-structure-tool"
   },
-  "author": "Daniel Tshipuk",
+  "author": {
+    "name": "Daniel Tshipuk",
+    "email": "tshipukdaniel@gmail.com"
+  },
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TheWanted06/file-structure-tool/issues"
+  },
+  "homepage": "https://github.com/TheWanted06/file-structure-tool#readme",
   "dependencies": {
-    "fs-extra": "^11.1.1"
+    "fs-extra": "^11.1.1",
+    "inquirer": "^8.2.0",
+    "path": "^0.12.7",
+    "yaml": "^2.3.1",
+    "ora": "^5.4.1",
+    "electron-store": "^8.1.0"
   },
   "devDependencies": {
     "electron": "^34.0.0",
     "electron-builder": "^25.1.8",
-    "inquirer": "^8.2.0"
+    "eslint": "^8.49.0",
+    "jest": "^29.7.0"
   },
   "build": {
-    "appId": "com.file-structure-generator.app",
-    "productName": "File Structure Generator",
+    "appId": "com.file-structure-tool.app",
+    "productName": "File Structure Tool",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -47,7 +67,10 @@
       {
         "from": "app",
         "to": "app",
-        "filter": ["**/*", "!**/*.js.map"]
+        "filter": [
+          "**/*",
+          "!**/*.js.map"
+        ]
       }
     ],
     "asar": true,
@@ -60,18 +83,22 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "${productName}-${version}.${ext}",
       "publisherName": "Daniel Tshipuk"
     },
     "portable": {
-      "artifactName": "FileStructureGenerator-Portable-${version}.${ext}",
+      "artifactName": "FileStructureTool-Portable-${version}.${ext}",
       "requestExecutionLevel": "user",
       "useZip": true
     },
@@ -79,13 +106,19 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "File Structure Tool"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "artifactName": "${productName}-${version}-mac.${ext}"
     },
     "linux": {
-      "target": "AppImage"
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "artifactName": "${productName}-${version}-linux.${ext}"
     }
   }
 }

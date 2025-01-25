@@ -21,22 +21,28 @@ const parseDiagram = (filePath) => {
 
         for (const line of lines) {
             try {
-                const level = (line.match(/^\s*/)[0].length) / 2;
+                // Calculate depth based on tree characters
+                const indent = line.match(/^[│ ├└─\s]*/)[0];
+                const level = (indent.length) / 2;
+
+                // Clean the name from tree characters
                 const name = line.replace(/^[│├└─\s]+/, '').trim();
 
                 if (!name) continue;
 
+                // Adjust the stack to the current level
                 while (stack.length > 1 && stack[stack.length - 1].level >= level) {
                     stack.pop();
                 }
 
                 const parent = stack[stack.length - 1].node;
 
-                if (name.endsWith('/')) {
-                    const dirName = name.slice(0, -1);
-                    parent[dirName] = {};
-                    stack.push({ level, node: parent[dirName] });
+                if (!name.includes('.')) {
+                    // It's a directory
+                    parent[name] = {};
+                    stack.push({ level, node: parent[name] });
                 } else {
+                    // It's a file
                     parent[name] = null;
                 }
             } catch (lineError) {

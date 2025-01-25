@@ -1,7 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
-const createStructure = (structure, parentPath) => {
+const createStructure = async (structure, parentPath, progressCallback) => {
+    const total = countItems(structure);
+    let current = 0;
+
+    const processWithProgress = async (item) => {
+        current++;
+        progressCallback?.(current / total * 100);
+        // ... existing creation logic
+    };
+
     try {
         console.log('Creating structure at:', parentPath);
 
@@ -11,28 +20,24 @@ const createStructure = (structure, parentPath) => {
             fs.mkdirSync(parentPath, { recursive: true });
         }
 
-        for (const key in structure) {
-            const currentPath = path.join(parentPath, key);
-            console.log('Processing:', currentPath);
+        const processStructure = (struct, currentPath, depth = 0) => {
+            for (const key in struct) {
+                const itemPath = path.join(currentPath, key);
 
-            try {
-                if (typeof structure[key] === 'object') {
-                    // Create directory
-                    if (!fs.existsSync(currentPath)) {
-                        console.log('Creating directory:', currentPath);
-                        fs.mkdirSync(currentPath, { recursive: true });
-                    }
-                    createStructure(structure[key], currentPath);
+                if (struct[key] === null) {
+                    // It's a file
+                    console.log(`Creating file: ${itemPath}`);
+                    fs.writeFileSync(itemPath, '', 'utf8');
                 } else {
-                    // Create file
-                    console.log('Creating file:', currentPath);
-                    fs.writeFileSync(currentPath, '', 'utf8');
+                    // It's a directory
+                    console.log(`Creating directory: ${itemPath}`);
+                    fs.mkdirSync(itemPath, { recursive: true });
+                    processStructure(struct[key], itemPath, depth + 1);
                 }
-            } catch (itemError) {
-                console.error(`Error processing ${currentPath}:`, itemError);
-                throw itemError;
             }
-        }
+        };
+
+        processStructure(structure, parentPath);
     } catch (error) {
         console.error('Structure creation error:', error);
         throw new Error(`Failed to create structure: ${error.message}`);

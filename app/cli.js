@@ -1,38 +1,62 @@
 #!/usr/bin/env node
 
+const { parseDiagram } = require('./utils/parser');
+const { createStructure } = require('./utils/file-creator');
+const { generateDiagram } = require('./utils/directory-to-diagram');
 const inquirer = require('inquirer');
+const path = require('path');
 const fs = require('fs');
-const { parseDiagram } = require('../utils/parser');
-const { createFilesAndFolders } = require('../utils/file-creator');
+const ora = require('ora');
 
-async function runCLI() {
-  try {
-    const { diagramPath } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'diagramPath',
-        message: 'Enter the path to the file structure diagram:',
-        validate: (input) => fs.existsSync(input) || 'File not found. Please enter a valid path.',
-      },
+(async () => {
+  const { action } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'action',
+      message: 'Choose an action:',
+      choices: ['Create structure from diagram', 'Generate diagram from directory'],
+    },
+  ]);
+
+  if (action === 'Create structure from diagram') {
+    const { diagramPath, destination } = await inquirer.prompt([
+      { type: 'input', name: 'diagramPath', message: 'Path to file diagram:' },
+      { type: 'input', name: 'destination', message: 'Destination directory:' },
     ]);
 
-    const { destinationPath } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'destinationPath',
-        message: 'Enter the destination directory:',
-        validate: (input) => fs.existsSync(input) || 'Directory not found. Please enter a valid path.',
-      },
+    const spinner = ora('Creating file structure...').start();
+
+    try {
+      const diagram = parseDiagram(diagramPath);
+      await createStructure(diagram, destination);
+
+      // Add minimum delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      spinner.succeed('Structure created successfully!');
+    } catch (error) {
+      spinner.fail(`Error: ${error.message}`);
+    }
+  } else {
+    const { sourceDir, destination, name } = await inquirer.prompt([
+      { type: 'input', name: 'sourceDir', message: 'Source directory to create diagram from:' },
+      { type: 'input', name: 'destination', message: 'Destination directory for the diagram:' },
+      { type: 'input', name: 'name', message: 'Name for the diagram file (without .txt):' }
     ]);
 
-    const diagramContent = fs.readFileSync(diagramPath, 'utf8');
-    const structure = parseDiagram(diagramContent);
-    createFilesAndFolders(structure, destinationPath);
+    const spinner = ora('Generating diagram...').start();
 
-    console.log('File structure created successfully!');
-  } catch (error) {
-    console.error('Error:', error.message);
+    try {
+      const diagram = generateDiagram(sourceDir);
+      const outputFile = path.join(destination, `${name}.txt`);
+      fs.writeFileSync(outputFile, diagram, 'utf8');
+
+      // Add minimum delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      spinner.succeed('Diagram generated successfully!');
+    } catch (error) {
+      spinner.fail(`Error: ${error.message}`);
+    }
   }
-}
-
-runCLI();
+})();

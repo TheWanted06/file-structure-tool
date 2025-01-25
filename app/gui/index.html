@@ -4,27 +4,158 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>File Structure Creator</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>File Structure Tool</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 
 <body>
-  <div class="form">
-    <h1>File Structure Creator</h1>
+  <div class="container">
+    <div class="content-wrapper">
+      <div class="title-section">
+        <h1>File Structure Tool</h1>
+        <button id="helpButton" class="help-button">
+          <span class="help-icon">?</span>
+        </button>
+      </div>
 
-    <label>
-      <input type="text" id="diagramPath" readonly placeholder="Select diagram file...">
-      <button id="selectDiagram">Browse</button>
-    </label>
+      <div class="main-section">
+        <div class="left-panel">
+          <div class="forms-section">
+            <div class="switch">
+              <div class="switch-container">
+                <label>
+                  <input type="checkbox" id="modeSwitch" />
+                  <span class="slider"></span>
+                </label>
+                <p id="modeLabel">File Structure Creation</p>
+              </div>
+            </div>
+            <div id="fileStructureForm" class="form visible">
+              <label>
+                <input type="text" id="diagramPath" readonly placeholder="Select diagram file..." />
+                <button id="selectDiagram">Browse</button>
+              </label>
+              <label>
+                <input type="text" id="destinationPath" readonly placeholder="Select destination..." />
+                <button id="selectDestination">Browse</button>
+              </label>
+              <label>
+                <input type="text" id="structureName" disabled placeholder="Name (optional)..." />
+              </label>
+              <button id="createStructure">Create Structure</button>
+              <div class="loader hidden"></div>
+            </div>
+            <div id="diagramForm" class="form hidden">
+              <label>
+                <input type="text" id="diagramFolderPath" readonly placeholder="Select the Folder structure..." />
+                <button id="selectDiagramFolder">Browse</button>
+              </label>
+              <label>
+                <input type="text" id="diagramDestination" readonly placeholder="Select the diagram destination..." />
+                <button id="selectDiagramDestination">Browse</button>
+              </label>
+              <label>
+                <input type="text" id="diagramName" placeholder="Write the name of the diagram..." />
+              </label>
+              <button id="createDiagram">Create Diagram</button>
+              <div class="loader hidden"></div>
+            </div>
+          </div>
+        </div>
 
-    <label>
-      <input type="text" id="destinationPath" readonly placeholder="Select destination...">
-      <button id="selectDestination">Browse</button>
-    </label>
+        <div class="right-panel">
+          <div class="theme-section">
+            <div class="theme-toggle">
+              <span class="theme-icon">🌞</span>
+              <div class="three-way-switch">
+                <input type="range" id="themeSlider" min="0" max="2" step="1" value="1">
+                <div class="slider-track"></div>
+                <div class="slider-labels">
+                  <span>Light</span>
+                  <span>System</span>
+                  <span>Dark</span>
+                </div>
+              </div>
+              <span class="theme-icon">��</span>
+            </div>
+          </div>
 
-    <button id="createStructure">Create Structure</button>
+          <div class="preview-section">
+            <h3>Preview</h3>
+            <pre id="previewContent"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="helpModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>How to Use File Structure Generator</h2>
+          <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+          <section>
+            <h3>Mode Selection</h3>
+            <p>Toggle between two modes using the switch at the top:</p>
+            <ul>
+              <li><strong>File Structure Creation:</strong> Create folders and files from a diagram</li>
+              <li><strong>Diagram Creation:</strong> Generate a diagram from existing folders</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>File Structure Creation Mode</h3>
+            <ol>
+              <li>Select a diagram file (.txt) containing the structure</li>
+              <li>Choose a destination folder for the structure</li>
+              <li>Click "Create Structure" to generate the files and folders</li>
+            </ol>
+            <div class="example">
+              <p><strong>Example Diagram Format:</strong></p>
+              <pre>
+Project/
+├── src/
+│   ├── components/
+│   │   └── Header.tsx
+│   └── styles/
+│       └── main.css
+└── README.md</pre>
+            </div>
+          </section>
+
+          <section>
+            <h3>Diagram Creation Mode</h3>
+            <ol>
+              <li>Select the folder structure you want to diagram</li>
+              <li>Choose where to save the diagram</li>
+              <li>Enter a name for the diagram file</li>
+              <li>Click "Create Diagram" to generate the text file</li>
+            </ol>
+          </section>
+
+          <section>
+            <h3>Preview Panel</h3>
+            <p>The right panel shows a live preview of:</p>
+            <ul>
+              <li>The diagram content when creating structures</li>
+              <li>The folder structure when creating diagrams</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Theme Settings</h3>
+            <p>Use the theme switcher in the top-right to choose:</p>
+            <ul>
+              <li>Light Mode</li>
+              <li>System Theme (follows your OS settings)</li>
+              <li>Dark Mode</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
   </div>
-  <script src="renderer.js"></script>
+  <script src="./renderer.js" defer></script>
 </body>
 
 </html>

@@ -1,173 +1,205 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, globalShortcut, nativeTheme } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
+const { generateDiagram } = require('./utils/directory-to-diagram');
+const Store = require('electron-store');
+const store = new Store();
 
-// Create a log file
-const logFile = path.join(app.getPath('userData'), 'app.log');
-const log = (message) => {
-    const timestamp = new Date().toISOString();
-    const logMessage = `${timestamp}: ${message}\n`;
-    fs.appendFileSync(logFile, logMessage);
-    console.log(message);
-};
+let mainWindow;
 
-// Log uncaught exceptions
-process.on('uncaughtException', (error) => {
-    log(`Uncaught Exception: ${error.message}`);
-    log(error.stack);
-});
+// Add theme handling
+function handleThemeChange() {
+    const isDark = nativeTheme.shouldUseDarkColors;
+    mainWindow?.webContents.send('theme-changed', isDark);
 
-process.on('unhandledRejection', (error) => {
-    log(`Unhandled Rejection: ${error.message}`);
-    log(error.stack);
-});
-
-// Get the correct app path whether in development or production
-const getAppPath = () => {
-    if (app.isPackaged) {
-        if (process.env.PORTABLE_EXECUTABLE_DIR) {
-            const portablePath = path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'resources', 'app');
-            log(`Using portable path: ${portablePath}`);
-            return portablePath;
-        }
-        const resourcePath = path.join(process.resourcesPath, 'app');
-        log(`Using resource path: ${resourcePath}`);
-        return resourcePath;
+    // Update theme if using system theme
+    const settings = store.get('settings', {});
+    if (settings.useSystemTheme) {
+        store.set('settings.darkMode', isDark);
     }
-    log(`Using development path: ${__dirname}`);
-    return __dirname;
-};
-
-// Get the correct path for utils
-const getUtilsPath = () => {
-    const basePath = getAppPath();
-    const utilsPath = app.isPackaged ?
-        path.join(basePath, '..', 'app.asar.unpacked', 'app', 'utils') :
-        path.join(basePath, 'utils');
-    log(`Utils path: ${utilsPath}`);
-    return utilsPath;
-};
-
-try {
-    log('Starting application...');
-    log(`App version: ${app.getVersion()}`);
-    log(`Electron version: ${process.versions.electron}`);
-    log(`Chrome version: ${process.versions.chrome}`);
-    log(`Node version: ${process.versions.node}`);
-    log(`Is packaged: ${app.isPackaged}`);
-    log(`Current directory: ${__dirname}`);
-    log(`Resource path: ${process.resourcesPath}`);
-    log(`Portable dir: ${process.env.PORTABLE_EXECUTABLE_DIR}`);
-
-    // Dynamically import modules with correct paths
-    const utilsPath = getUtilsPath();
-    log(`Loading modules from: ${utilsPath}`);
-    const parser = require(path.join(utilsPath, 'parser.js'));
-    const fileCreator = require(path.join(utilsPath, 'file-creator.js'));
-
-    let mainWindow;
-
-    function createWindow() {
-        log('Creating main window...');
-        mainWindow = new BrowserWindow({
-            width: 500,
-            height: 400,
-            resizable: false,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
-                preload: path.join(getAppPath(), 'preload.js'),
-                sandbox: false
-            },
-        });
-
-        const indexPath = path.join(getAppPath(), 'gui', 'index.html');
-        log(`Loading index from: ${indexPath}`);
-
-        mainWindow.loadFile(indexPath).catch(err => {
-            log(`Error loading index.html: ${err.message}`);
-            log(err.stack);
-        });
-
-        if (!app.isPackaged) {
-            mainWindow.webContents.openDevTools();
-        }
-
-        mainWindow.on('closed', () => {
-            mainWindow = null;
-        });
-    }
-
-    // Handle file diagram selection
-    ipcMain.handle('select-diagram', async () => {
-        log('Selecting diagram file...');
-        const result = await dialog.showOpenDialog(mainWindow, {
-            title: 'Select File Diagram',
-            filters: [{ name: 'Text Files', extensions: ['txt'] }],
-            properties: ['openFile'],
-        });
-        log(`Dialog result: ${JSON.stringify(result)}`);
-        return result.canceled ? null : result.filePaths[0];
-    });
-
-    // Handle destination directory selection
-    ipcMain.handle('select-destination', async () => {
-        log('Selecting destination directory...');
-        const result = await dialog.showOpenDialog(mainWindow, {
-            title: 'Select Destination Directory',
-            properties: ['openDirectory'],
-        });
-        log(`Dialog result: ${JSON.stringify(result)}`);
-        return result.canceled ? null : result.filePaths[0];
-    });
-
-    // Process the file diagram and create the structure
-    ipcMain.handle('process-diagram', async (event, diagramPath, destinationPath) => {
-        try {
-            log(`Processing diagram: ${diagramPath}`);
-            log(`Destination: ${destinationPath}`);
-
-            if (!fs.existsSync(diagramPath)) {
-                throw new Error('Diagram file does not exist');
-            }
-            if (!fs.existsSync(destinationPath)) {
-                throw new Error('Destination directory does not exist');
-            }
-
-            const structure = parser.parseDiagram(diagramPath);
-            log(`Parsed structure: ${JSON.stringify(structure, null, 2)}`);
-
-            fileCreator.createStructure(structure, destinationPath);
-            log('Structure created successfully');
-
-            return { success: true };
-        } catch (error) {
-            log(`Error processing diagram: ${error.message}`);
-            log(error.stack);
-            return { success: false, error: error.message };
-        }
-    });
-
-    app.whenReady().then(() => {
-        log('App is ready, creating window...');
-        createWindow();
-    });
-
-    app.on('window-all-closed', () => {
-        log('All windows closed');
-        if (process.platform !== 'darwin') {
-            app.quit();
-        }
-    });
-
-    app.on('activate', () => {
-        log('App activated');
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
-    });
-
-} catch (error) {
-    log(`Fatal error during startup: ${error.message}`);
-    log(error.stack);
 }
+
+app.on('ready', () => {
+    // Initialize with system theme
+    const settings = store.get('settings', {
+        useSystemTheme: true,
+        darkMode: nativeTheme.shouldUseDarkColors
+    });
+
+    mainWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    });
+
+    mainWindow.loadFile(path.join(__dirname, 'gui', 'index.html'));
+
+    // Listen for system theme changes
+    nativeTheme.on('updated', handleThemeChange);
+
+    // Add shortcuts
+    globalShortcut.register('CommandOrControl+O', () => {
+        mainWindow.webContents.send('trigger-open');
+    });
+
+    globalShortcut.register('CommandOrControl+S', () => {
+        mainWindow.webContents.send('trigger-save');
+    });
+});
+
+ipcMain.handle('select-diagram', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select File Diagram',
+        properties: ['openFile'],
+        filters: [{ name: 'Text Files', extensions: ['txt'] }],
+    });
+
+    return canceled ? null : filePaths[0];
+});
+
+ipcMain.handle('select-destination', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+    });
+
+    return canceled ? null : filePaths[0];
+});
+
+ipcMain.handle('select-repositery', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+    });
+
+    return canceled ? null : filePaths[0];
+});
+
+ipcMain.handle('createFileStructure', async (event, diagramPath, destinationPath) => {
+    try {
+        const structure = fs.readFileSync(diagramPath, 'utf8');
+        const lines = structure.split('\n');
+
+        // Keep track of the current path depth
+        const pathStack = [destinationPath];
+
+        for (const line of lines) {
+            if (!line.trim()) continue;
+
+            // Calculate depth based on the number of leading spaces/tree characters
+            const depth = (line.match(/^[│ ├└─\s]*/)[0].length) / 2;
+
+            // Clean the name from tree characters
+            const name = line.replace(/^[│├└─\s]+/, '').trim();
+            if (!name) continue;
+
+            // Adjust the path stack to match current depth
+            while (pathStack.length > depth + 1) {
+                pathStack.pop();
+            }
+
+            const fullPath = path.join(pathStack[pathStack.length - 1], name);
+
+            if (name.includes('.')) {
+                // It's a file
+                fs.ensureFileSync(fullPath);
+            } else {
+                // It's a directory
+                fs.ensureDirSync(fullPath);
+                pathStack.push(fullPath);
+            }
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('createDiagram', async (event, sourcePath, destinationPath, Name) => {
+    try {
+        // Generate the structure starting from the source path
+        const fileStructure = generateDiagram(sourcePath);  // This will now include the root folder name
+
+        // Ensure the name has .txt extension
+        const fileName = Name.endsWith('.txt') ? Name : `${Name}.txt`;
+        const diagramPath = path.join(destinationPath, fileName);
+
+        // Ensure destination directory exists
+        fs.ensureDirSync(destinationPath);
+
+        // Save the diagram
+        fs.writeFileSync(diagramPath, fileStructure);
+
+        return { success: true, diagramPath };
+    } catch (error) {
+        console.error(error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('preview-structure', async (event, diagramPath) => {
+    try {
+        const content = fs.readFileSync(diagramPath, 'utf8');
+        return { success: true, content };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('get-recent', async () => {
+    return store.get('recentFiles', []);
+});
+
+ipcMain.handle('add-recent', async (event, filePath) => {
+    let recent = store.get('recentFiles', []);
+    recent = [filePath, ...recent.filter(f => f !== filePath)].slice(0, 5);
+    store.set('recentFiles', recent);
+    return recent;
+});
+
+// Add settings handler
+ipcMain.handle('get-settings', async () => {
+    return store.get('settings', {
+        darkMode: false,
+        autoPreview: true,
+        saveLocation: app.getPath('documents')
+    });
+});
+
+ipcMain.handle('save-settings', async (event, settings) => {
+    store.set('settings', settings);
+    return { success: true };
+});
+
+// Add theme IPC handlers
+ipcMain.handle('get-theme', () => {
+    return {
+        useSystemTheme: store.get('settings.useSystemTheme', true),
+        darkMode: store.get('settings.darkMode', nativeTheme.shouldUseDarkColors)
+    };
+});
+
+ipcMain.handle('set-theme', (event, { useSystemTheme, darkMode }) => {
+    store.set('settings.useSystemTheme', useSystemTheme);
+    store.set('settings.darkMode', darkMode);
+    return { success: true };
+});
+
+// Add this handler
+ipcMain.handle('previewFolder', async (event, folderPath) => {
+    try {
+        const structure = generateDiagram(folderPath);
+        return { success: true, content: structure };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Add new IPC handler for system theme
+ipcMain.handle('getSystemTheme', () => {
+    return nativeTheme.shouldUseDarkColors;
+});

@@ -1,99 +1,120 @@
-# File Structure Creator
+# File Structure Tool
 
-The File Structure Creator is a versatile application designed to generate files and folders based on a file structure diagram. It offers a GUI for easy use and a CLI for terminal-based operations, making it suitable for both casual and advanced users.
+A desktop application that simplifies the creation of file structures from diagrams and vice versa. Perfect for developers who want to quickly scaffold project structures or document existing ones.
 
 ## Features
 
-- **Parse File Structure Diagrams**: Reads diagrams to create complex file and folder structures.
-- **GUI and CLI Support**: Runs as a standalone GUI application or via the terminal.
-- **Custom Destination Selection**: Allows users to choose where the files and folders are created.
-- **Cross-Platform**: Compatible with Windows, macOS, and Linux.
-
-## File Structure
-
-```plaintext
-file-structure-creator/
-├── app/
-│   ├── main.js              # Electron GUI entry point
-│   ├── cli.js               # Terminal-based entry point
-│   ├── index.html           # GUI layout
-│   ├── renderer.js          # GUI renderer process logic
-│   ├── styles.css           # GUI styles
-├── utils/
-│   ├── parser.js            # Shared: Parses file structure diagrams
-│   ├── file-creator.js      # Shared: Creates files and folders
-├── dist/                    # Built Electron executables
-├── package.json             # npm metadata
-├── README.md                # App documentation
-├── .gitignore               # Git ignore file
-├── diagram-examples/        # Example diagrams
-│   ├── example1.txt         
-│   ├── example2.txt
-├── node_modules/            # Dependencies
-```
+- **Dual-Mode Operation**: 
+  - Create file structures from diagrams
+  - Generate diagrams from existing file structures
+- **Modern Interface**:
+  - Intuitive GUI with dark/light theme support
+  - Live preview functionality
+  - System theme integration
+- **Cross-Platform Support**:
+  - Windows (portable & installer)
+  - macOS
+  - Linux
+- **CLI Support**: Terminal-based operations for automation
+- **File Format Support**: 
+  - Reads and creates standard tree-style diagrams
+  - Handles nested structures with proper indentation
 
 ## Installation
+
+### Download
+
+Download the latest release for your platform from the [releases page](https://github.com/TheWanted06/file-structure-tool/releases).
+
+### Build from Source
 
 1. Clone the repository:
 
 ```bash
-   git clone (https://github.com/TheWanted/file-structure-creator.git)
+git clone https://github.com/TheWanted06/file-structure-tool.git
 ```
 
 2. Install dependencies:
 
 ```bash
-    npm install
+npm install
+```
+
+3. Run the application:
+
+```bash
+npm start
 ```
 
 ## Usage
 
 ### GUI Mode
 
-Run the application with the GUI:
-
-```bash
-    npm start --gui
-```
+1. Launch the application
+2. Choose between:
+   - **Create Structure**: Convert a diagram to actual files/folders
+   - **Create Diagram**: Generate a diagram from existing files/folders
+3. Select source and destination paths
+4. Click Create
 
 ### CLI Mode
 
-Provide a diagram file and destination directory
+Generate structure from diagram:
 
 ```bash
-    npm start -- <diagram-file-path> <destination-path>
+npm run cli
 ```
 
-Example:
+## Example Diagram Format
 
 ```bash
-    npm start -- ~/diagram.txt ~/output
-```
-
-### Packaging the App
-
-To create an executable:
-
-```bash
-    npm run package
-```
-
-## Example Diagram
-
-```plaintext
-Client/
-├── app/
-│   ├── index.html
-│   ├── styles.css
-│   ├── app.js
-├── components/
-│   ├── Header.js
-│   ├── Footer.js
+Project/
+├── src/
+│   ├── components/
+│   │   ├── Header.tsx
+│   │   └── Footer.tsx
+│   ├── pages/
+│   │   ├── index.tsx
+│   │   └── about.tsx
+│   └── styles/
+│       └── main.css
 └── README.md
 ```
 
+## Development
+
+### Scripts
+
+- `npm start` - Run the application
+- `npm run cli` - Run CLI version
+- `npm run build` - Build for current platform
+- `npm run dist` - Create distributables
+- `npm test` - Run tests
+
+### Building
+
+Create distributables for all platforms:
+
+```bash
+npm run dist
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
 ## License
 
-MIT
+ISC License - See [LICENSE](LICENSE) for details
+
+## Author
+
+Daniel Tshipuk
 
 ---
+
+For bugs, questions, and discussions please use the [GitHub Issues](https://github.com/TheWanted06/file-structure-tool/issues).
