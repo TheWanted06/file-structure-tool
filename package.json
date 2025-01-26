@@ -22,7 +22,9 @@
     "GUI",
     "diagram",
     "project-scaffold",
-    "development-tools"
+    "development-tools",
+    "project-templates",
+    "boilerplate-generator"
   ],
   "repository": {
     "type": "git",
@@ -30,7 +32,7 @@
   },
   "author": {
     "name": "Daniel Tshipuk",
-    "email": "tshipukdaniel@gmail.com"
+    "email": "TheWanted06@users.noreply.github.com"
   },
   "license": "ISC",
   "bugs": {
